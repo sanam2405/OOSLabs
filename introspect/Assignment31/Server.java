@@ -4,7 +4,9 @@ import java.io.*;
 import java.net.*;
 
 public class Server {
+
     public static void main(String[] args) {
+        InMemoryStore store = InMemoryStore.getInstance();
         try {
             ServerSocket serverSocket = new ServerSocket(6969);
 
@@ -24,15 +26,24 @@ public class Server {
                         }
                         int numberReceivedFromClient = Integer.parseInt(input);
                         System.out.println("Integer received from client: " + numberReceivedFromClient);
-                        int factorial = calculateFactorial(numberReceivedFromClient);
+
+                        int factorial;
+
+                        if (store.GET(numberReceivedFromClient) != -1) {
+                            factorial = store.GET(numberReceivedFromClient);
+                        } else {
+                            factorial = calculateFactorial(numberReceivedFromClient);
+                            store.PUT(numberReceivedFromClient, factorial);
+                        }
 
                         // send factorial to client
                         out.println(factorial);
                     }
                 } catch (SocketTimeoutException e) {
+                    clientSocket.close();
                     System.out.println("No input received from client for 10 seconds. Closing connection...");
                 } finally {
-                    clientSocket.close();
+                    System.exit(1); // exits the program after closing the connection
                 }
             }
         } catch (IOException e) {
@@ -41,6 +52,10 @@ public class Server {
     }
 
     private static int calculateFactorial(int n) {
+
+        if (n < 0)
+            return calculateFactorial(Math.abs(n));
+
         if (n == 0)
             return 1;
         else
